@@ -8,7 +8,8 @@ const ChatUI = () => {
     const [activeChatId, setActiveChatId] = useState(null);
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
+    const [isSidebarOpenDesktop, setIsSidebarOpenDesktop] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
     // Load Chat Sessions List
@@ -78,11 +79,8 @@ const ChatUI = () => {
     const handleDeleteChat = async (id) => {
         if (!db) return;
         try {
-            // Firestore doesn't automatically delete subcollections.
-            // Normally handled via Cloud Functions or recursive delete, but for this simple app, we delete the chat doc.
             await deleteDoc(doc(db, "chats", id));
             
-            // Switch to a different chat if we deleted the active one
             if (activeChatId === id) {
                 const remainingChats = chats.filter(c => c.id !== id);
                 setActiveChatId(remainingChats.length > 0 ? remainingChats[0].id : null);
@@ -98,10 +96,7 @@ const ChatUI = () => {
     };
 
     const handleSendMessage = async (text) => {
-        if (!db) {
-             alert("Firebase is not configured in .env");
-             return;
-        }
+        if (!db) return;
 
         let currentChatId = activeChatId;
         
@@ -149,7 +144,7 @@ const ChatUI = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     message: text,
-                    history: messages // pass past context
+                    history: messages
                 })
             });
 
@@ -160,13 +155,10 @@ const ChatUI = () => {
             
             let assistantMessage = "";
             let isStreaming = true;
+            let hasStartedStreaming = false;
 
             // Generate a temporary ID for the streaming message
             const tempBotId = 'stream-' + Date.now();
-            
-            // Add initial empty bot message locally
-            setMessages(prev => [...prev, { id: tempBotId, role: "assistant", content: "", timestamp: Date.now() }]);
-            setIsLoading(false); // Stop typing indicator, start streaming actual text
 
             while (isStreaming) {
                 const { done, value } = await reader.read();
@@ -189,10 +181,17 @@ const ChatUI = () => {
                                 assistantMessage += "\n\n**Error:** " + data.error;
                             } else if (data.text) {
                                 assistantMessage += data.text;
-                                // Update ONLY the local react state while streaming to avoid Firestore 1-write-per-second limit
-                                setMessages(prev => 
-                                    prev.map(msg => msg.id === tempBotId ? { ...msg, content: assistantMessage } : msg)
-                                );
+                                
+                                if (!hasStartedStreaming) {
+                                    hasStartedStreaming = true;
+                                    setIsLoading(false); // Stop typing indicator only when text actually arrives
+                                    setMessages(prev => [...prev, { id: tempBotId, role: "assistant", content: assistantMessage, timestamp: Date.now() }]);
+                                } else {
+                                    // Update ONLY the local react state while streaming to avoid Firestore 1-write-per-second limit
+                                    setMessages(prev => 
+                                        prev.map(msg => msg.id === tempBotId ? { ...msg, content: assistantMessage } : msg)
+                                    );
+                                }
                             }
                         } catch (e) {
                             // Incomplete chunk parse error
@@ -200,6 +199,8 @@ const ChatUI = () => {
                     }
                 }
             }
+
+            setIsLoading(false);
 
             // Streaming finished, NOW save the final complete message to Firestore
             await addDoc(collection(db, "chats", currentChatId, "messages"), {
@@ -226,16 +227,18 @@ const ChatUI = () => {
     return (
         <div className="flex h-screen w-full bg-[#343541] text-white flex-row overflow-hidden font-sans">
             {/* Mobile Sidebar Overlay */}
-            {isSidebarOpen && (
+            {isSidebarOpenMobile && (
                 <div 
-                    className="fixed inset-0 bg-black/60 z-20 md:hidden backdrop-blur-sm"
-                    onClick={() => setIsSidebarOpen(false)}
+                    className="fixed inset-0 bg-black/60 z-20 md:hidden backdrop-blur-sm transition-opacity"
+                    onClick={() => setIsSidebarOpenMobile(false)}
                 />
             )}
 
             <Sidebar 
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
+                isOpenMobile={isSidebarOpenMobile}
+                isOpenDesktop={isSidebarOpenDesktop}
+                onCloseMobile={() => setIsSidebarOpenMobile(false)}
+                onToggleDesktop={() => setIsSidebarOpenDesktop(!isSidebarOpenDesktop)}
                 onNewChat={handleCreateNewChat}
                 chats={filteredChats}
                 activeChatId={activeChatId}
@@ -250,7 +253,10 @@ const ChatUI = () => {
                 messages={messages}
                 isLoading={isLoading}
                 onSendMessage={handleSendMessage}
-                onOpenSidebar={() => setIsSidebarOpen(true)}
+                onOpenSidebarMobile={() => setIsSidebarOpenMobile(true)}
+                onToggleSidebarDesktop={() => setIsSidebarOpenDesktop(!isSidebarOpenDesktop)}
+                isSidebarOpenDesktop={isSidebarOpenDesktop}
+                onNewChat={handleCreateNewChat}
             />
         </div>
     );

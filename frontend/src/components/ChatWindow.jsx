@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { Bot, Menu } from 'lucide-react';
+import { Bot, Menu, Edit, PanelLeftOpen } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import ChatInput from './ChatInput';
 
-const ChatWindow = ({ messages, isLoading, onSendMessage, onOpenSidebar }) => {
+const ChatWindow = ({ messages, isLoading, onSendMessage, onOpenSidebarMobile, onToggleSidebarDesktop, isSidebarOpenDesktop, onNewChat }) => {
     const messagesEndRef = useRef(null);
 
     const scrollToBottom = () => {
@@ -17,15 +17,37 @@ const ChatWindow = ({ messages, isLoading, onSendMessage, onOpenSidebar }) => {
 
     return (
         <div className="flex-1 flex flex-col h-full w-full relative bg-[#343541]">
+            {/* Desktop Header for Toggle */}
+            {!isSidebarOpenDesktop && (
+                <div className="hidden md:flex absolute top-4 left-4 z-10">
+                    <button 
+                        onClick={onToggleSidebarDesktop}
+                        className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition-colors border border-gray-700 hover:border-gray-500 bg-[#343541]"
+                        title="Open sidebar"
+                    >
+                        <PanelLeftOpen size={20} />
+                    </button>
+                    <button 
+                        onClick={onNewChat}
+                        className="p-2 ml-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition-colors border border-gray-700 hover:border-gray-500 bg-[#343541]"
+                        title="New Chat"
+                    >
+                        <Edit size={20} />
+                    </button>
+                </div>
+            )}
+
             {/* Mobile Header */}
-            <div className="md:hidden flex items-center justify-between p-4 bg-[#343541] border-b border-gray-700/50 sticky top-0 z-10 w-full text-white">
-                <button onClick={onOpenSidebar} className="p-1 hover:bg-gray-700 rounded-md transition-colors">
+            <div className="md:hidden flex items-center justify-between p-3 bg-[#343541] border-b border-gray-700/50 sticky top-0 z-10 w-full text-white">
+                <button onClick={onOpenSidebarMobile} className="p-2 hover:bg-gray-700 rounded-md transition-colors">
                     <Menu size={24} />
                 </button>
-                <span className="font-semibold text-lg flex items-center gap-2">
-                    <Bot size={20} className="text-[#10a37f]" /> Gemini AI
-                </span>
-                <div className="w-6"></div> {/* Spacer for center alignment */}
+                <div className="font-semibold text-lg flex items-center gap-2">
+                    <Bot size={20} className="text-[#10a37f]" /> Gemini
+                </div>
+                <button onClick={onNewChat} className="p-2 hover:bg-gray-700 rounded-md transition-colors" title="New Chat">
+                    <Edit size={20} />
+                </button>
             </div>
 
             {/* Message Thread */}
@@ -65,10 +87,10 @@ const ChatWindow = ({ messages, isLoading, onSendMessage, onOpenSidebar }) => {
                                 timestamp={msg.timestamp}
                             />
                         ))}
-                        {isLoading && <TypingIndicator />}
-                        <div ref={messagesEndRef} className="h-4" />
                     </>
                 )}
+                {isLoading && <TypingIndicator />}
+                <div ref={messagesEndRef} className="h-4" />
             </div>
 
             {/* Message Input Form */}
