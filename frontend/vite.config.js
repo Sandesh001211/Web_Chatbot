@@ -12,6 +12,18 @@ export default defineConfig(({ mode }) => {
   const env = fs.existsSync(envPath) ? dotenv.parse(fs.readFileSync(envPath)) : {};
   return {
     plugins: [react()],
+    optimizeDeps: {
+      include: [
+        'react', 
+        'react-dom', 
+        'firebase/app', 
+        'firebase/firestore', 
+        'firebase/auth', 
+        'lucide-react', 
+        'react-markdown', 
+        'react-syntax-highlighter'
+      ],
+    },
     define: {
       'process.env.FIREBASE_API_KEY': JSON.stringify(env.FIREBASE_API_KEY || ''),
       'process.env.FIREBASE_AUTH_DOMAIN': JSON.stringify(env.FIREBASE_AUTH_DOMAIN || ''),

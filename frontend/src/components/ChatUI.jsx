@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { db, collection, addDoc, getDocs, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, setDoc } from '../firebase';
+import { db, collection, addDoc, getDocs, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, setDoc, where } from '../firebase';
 import Sidebar from './Sidebar';
 import ChatWindow from './ChatWindow';
 
-const ChatUI = () => {
+const ChatUI = ({ user }) => {
     const [chats, setChats] = useState([]);
     const [activeChatId, setActiveChatId] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -14,11 +14,11 @@ const ChatUI = () => {
 
     // Load Chat Sessions List
     useEffect(() => {
-        if (!db) {
-            console.warn("Firebase not configured");
+        if (!db || !user) {
+            console.warn("Firebase not configured or no user");
             return;
         }
-        const q = query(collection(db, "chats"), orderBy("updatedAt", "desc"));
+        const q = query(collection(db, "chats"), where("userId", "==", user.uid), orderBy("updatedAt", "desc"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const chatsData = [];
             snapshot.forEach((doc) => {
@@ -53,10 +53,11 @@ const ChatUI = () => {
     }, [activeChatId]);
 
     const handleCreateNewChat = async () => {
-        if (!db) return;
+        if (!db || !user) return;
         try {
             const newChatRef = await addDoc(collection(db, "chats"), {
                 title: "New Chat",
+                userId: user.uid,
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp()
             });
@@ -96,7 +97,7 @@ const ChatUI = () => {
     };
 
     const handleSendMessage = async (text) => {
-        if (!db) return;
+        if (!db || !user) return;
 
         let currentChatId = activeChatId;
         
@@ -105,6 +106,7 @@ const ChatUI = () => {
             try {
                 const newChatRef = await addDoc(collection(db, "chats"), {
                     title: generateTitle(text),
+                    userId: user.uid,
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp()
                 });
@@ -235,6 +237,7 @@ const ChatUI = () => {
             )}
 
             <Sidebar 
+                user={user}
                 isOpenMobile={isSidebarOpenMobile}
                 isOpenDesktop={isSidebarOpenDesktop}
                 onCloseMobile={() => setIsSidebarOpenMobile(false)}

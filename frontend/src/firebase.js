@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, setDoc, where } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY,
@@ -10,11 +11,12 @@ const firebaseConfig = {
   appId: process.env.FIREBASE_APP_ID
 };
 
-let app, db;
+let app, db, auth;
 
 if (firebaseConfig.apiKey) {
     app = initializeApp(firebaseConfig);
     db = getFirestore(app);
+    auth = getAuth(app);
 }
 
-export { db, collection, addDoc, getDocs, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, setDoc };
+export { db, auth, collection, addDoc, getDocs, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, setDoc, where };
