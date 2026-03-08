@@ -42,8 +42,8 @@ app.get('/chat/history', async (req, res) => {
 // Send new message via STREAM
 app.post('/chat/stream', async (req, res) => {
     try {
-        const { message, history } = req.body;
-        if (!message) return res.status(400).json({ error: "Message is required" });
+        const { message, image, history } = req.body;
+        if (!message && !image) return res.status(400).json({ error: "Message or image is required" });
 
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
@@ -51,7 +51,7 @@ app.post('/chat/stream', async (req, res) => {
         // Flush headers
         res.flushHeaders?.();
 
-        const stream = await getGeminiStream(message, history || []);
+        const stream = await getGeminiStream(message, image, history || []);
         
         for await (const chunk of stream) {
             const chunkText = chunk.text();

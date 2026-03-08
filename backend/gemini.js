@@ -23,19 +23,18 @@ export const getGeminiResponse = async (message) => {
   }
 };
 
-export const getGeminiStream = async (message, history = []) => {
+export const getGeminiStream = async (message, image, history = []) => {
     if (!genAI) throw new Error("GEMINI_API_KEY is missing in .env file.");
     
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         
         // Filter out empty messages
-        let safeHistory = history.filter(msg => msg && msg.content && msg.content.trim() !== '');
+        let safeHistory = history.filter(msg => msg && (msg.content?.trim() !== '' || msg.image));
 
         // Gemini requires strict alternating `user` -> `model` -> `user`
         // Since React state might have already included the current user message, remove trailing user messages
         if (safeHistory.length > 0 && safeHistory[safeHistory.length - 1].role === 'user') {
-            // Remove the last user message from history, as it's the one being sent to sendMessageStream right now
             safeHistory.pop();
         }
 
@@ -45,16 +44,55 @@ export const getGeminiStream = async (message, history = []) => {
         for (const msg of safeHistory) {
             const currentRole = msg.role === 'user' ? 'user' : 'model';
             if (currentRole === expectedRole) {
+                let parts = [];
+                if (msg.content) {
+                    parts.push({ text: msg.content });
+                }
+                
+                if (msg.image) {
+                    const matches = msg.image.match(/^data:(image\/[a-zA-Z]+);base64,(.*)$/);
+                    if (matches) {
+                        parts.push({
+                            inlineData: {
+                                mimeType: matches[1],
+                                data: matches[2]
+                            }
+                        });
+                    }
+                }
+                
+                if (parts.length === 0) parts.push({ text: " " });
+
                 strictHistory.push({
                     role: currentRole,
-                    parts: [{ text: msg.content }]
+                    parts: parts
                 });
                 expectedRole = currentRole === 'user' ? 'model' : 'user';
             }
         }
         
         const chat = model.startChat({ history: strictHistory });
-        const result = await chat.sendMessageStream(message);
+        
+        let parts = [];
+        if (message) parts.push({ text: message });
+        
+        if (image) {
+            const matches = image.match(/^data:(image\/[a-zA-Z]+);base64,(.*)$/);
+            if (matches) {
+                parts.push({
+                    inlineData: {
+                        mimeType: matches[1],
+                        data: matches[2]
+                    }
+                });
+            }
+        }
+        
+        if (parts.length === 0) {
+            parts.push({ text: "Please process this request." });
+        }
+        
+        const result = await chat.sendMessageStream(parts);
         return result.stream;
     } catch (error) {
         console.error("Gemini Streaming Stream Error:", error);

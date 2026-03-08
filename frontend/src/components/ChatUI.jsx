@@ -91,12 +91,13 @@ const ChatUI = ({ user }) => {
         }
     };
 
-    const generateTitle = (message) => {
-        const title = message.substring(0, 40);
+    const generateTitle = (text) => {
+        if (!text) return "Image Upload";
+        const title = text.substring(0, 40);
         return title.length === 40 ? title + "..." : title;
     };
 
-    const handleSendMessage = async (text) => {
+    const handleSendMessage = async (text, imageBase64 = null) => {
         if (!db || !user) return;
 
         let currentChatId = activeChatId;
@@ -134,6 +135,7 @@ const ChatUI = ({ user }) => {
         await addDoc(collection(db, "chats", currentChatId, "messages"), {
             role: "user",
             content: text,
+            ...(imageBase64 && { image: imageBase64 }),
             timestamp: Date.now()
         });
 
@@ -146,6 +148,7 @@ const ChatUI = ({ user }) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     message: text,
+                    image: imageBase64,
                     history: messages
                 })
             });

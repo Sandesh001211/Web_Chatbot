@@ -49,10 +49,11 @@ const CodeBlock = ({ inline, className, children, ...props }) => {
     );
 };
 
-const MessageBubble = ({ message, isBot, timestamp }) => {
+const MessageBubble = ({ message, image, isBot, timestamp }) => {
     const [copied, setCopied] = useState(false);
 
     const handleCopyMessage = () => {
+        if (!message) return;
         navigator.clipboard.writeText(message);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
@@ -78,18 +79,26 @@ const MessageBubble = ({ message, isBot, timestamp }) => {
                         )}
                     </div>
                     
-                    <div className="text-gray-200 mt-2 prose prose-invert max-w-none text-[15px] leading-relaxed break-words">
-                        <ReactMarkdown components={{ code: CodeBlock }}>
-                            {message}
-                        </ReactMarkdown>
-                    </div>
+                    {image && (
+                        <div className="mt-3 mb-2">
+                            <img src={image} alt="Uploaded attachment" className="max-w-xs md:max-w-sm max-h-64 object-contain rounded-xl border border-gray-600 shadow-md" />
+                        </div>
+                    )}
+                    
+                    {message && (
+                        <div className="text-gray-200 mt-2 prose prose-invert max-w-none text-[15px] leading-relaxed break-words">
+                            <ReactMarkdown components={{ code: CodeBlock }}>
+                                {message}
+                            </ReactMarkdown>
+                        </div>
+                    )}
                 </div>
 
                 {/* Global Message Copy button (appears on hover) */}
                 <button
                     onClick={handleCopyMessage}
                     className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 p-1.5 bg-[#2A2B32] md:bg-transparent rounded-md hover:bg-gray-700 text-gray-400 hover:text-white transition-all flex items-center gap-1 text-xs"
-                    title="Copy Message"
+                    title="Copy Message text"
                 >
                     {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
                 </button>

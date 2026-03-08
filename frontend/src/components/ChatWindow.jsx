@@ -82,7 +82,8 @@ const ChatWindow = ({ messages, isLoading, onSendMessage, onOpenSidebarMobile, o
                         {messages.map((msg, index) => (
                             <MessageBubble 
                                 key={msg.id || index} 
-                                message={msg.content} 
+                                message={msg.content}
+                                image={msg.image}
                                 isBot={msg.role === 'assistant'} 
                                 timestamp={msg.timestamp}
                             />
