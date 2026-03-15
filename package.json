@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "AI Chatbot with React, Node, Express, Gemini, and Firebase",
   "scripts": {
-    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
-    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
-    "start": "concurrently \"cd backend && npm start\" \"cd frontend && npm run dev\""
+    "install:all": "npm install && cd functions && npm install && cd ../frontend && npm install",
+    "dev": "concurrently \"cd functions && npm run dev\" \"cd frontend && npm run dev\"",
+    "start": "concurrently \"cd functions && npm start\" \"cd frontend && npm run dev\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

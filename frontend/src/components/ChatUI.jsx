@@ -25,7 +25,7 @@ const ChatUI = ({ user }) => {
                 chatsData.push({ id: doc.id, ...doc.data() });
             });
             setChats(chatsData);
-            
+
             // Auto select first chat if none selected
             if (!activeChatId && chatsData.length > 0) {
                 setActiveChatId(chatsData[0].id);
@@ -40,7 +40,7 @@ const ChatUI = ({ user }) => {
             setMessages([]);
             return;
         }
-        
+
         const q = query(collection(db, "chats", activeChatId, "messages"), orderBy("timestamp", "asc"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const msgs = [];
@@ -81,7 +81,7 @@ const ChatUI = ({ user }) => {
         if (!db) return;
         try {
             await deleteDoc(doc(db, "chats", id));
-            
+
             if (activeChatId === id) {
                 const remainingChats = chats.filter(c => c.id !== id);
                 setActiveChatId(remainingChats.length > 0 ? remainingChats[0].id : null);
@@ -101,7 +101,7 @@ const ChatUI = ({ user }) => {
         if (!db || !user) return;
 
         let currentChatId = activeChatId;
-        
+
         // If there is no active chat or we just typed something in an empty setup
         if (!currentChatId) {
             try {
@@ -114,20 +114,20 @@ const ChatUI = ({ user }) => {
                 currentChatId = newChatRef.id;
                 setActiveChatId(currentChatId);
             } catch (err) {
-                 console.error("Failed to create chat doc", err);
-                 return;
+                console.error("Failed to create chat doc", err);
+                return;
             }
         } else {
             // Update title if it's the first message
             if (messages.length === 0) {
-                 await updateDoc(doc(db, "chats", currentChatId), {
-                     title: generateTitle(text),
-                     updatedAt: serverTimestamp()
-                 });
+                await updateDoc(doc(db, "chats", currentChatId), {
+                    title: generateTitle(text),
+                    updatedAt: serverTimestamp()
+                });
             } else {
-                 await updateDoc(doc(db, "chats", currentChatId), {
-                     updatedAt: serverTimestamp()
-                 });
+                await updateDoc(doc(db, "chats", currentChatId), {
+                    updatedAt: serverTimestamp()
+                });
             }
         }
 
@@ -141,12 +141,12 @@ const ChatUI = ({ user }) => {
 
         setIsLoading(true);
 
-        // Call backend proxy for AI Stream
         try {
-            const response = await fetch('http://localhost:5000/chat/stream', {
+            const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            const response = await fetch(`${API_BASE_URL}/chat/stream`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     message: text,
                     image: imageBase64,
                     history: messages
@@ -154,10 +154,10 @@ const ChatUI = ({ user }) => {
             });
 
             if (!response.ok) throw new Error("Network response was not ok");
-            
+
             const reader = response.body.getReader();
             const decoder = new TextDecoder("utf-8");
-            
+
             let assistantMessage = "";
             let isStreaming = true;
             let hasStartedStreaming = false;
@@ -171,7 +171,7 @@ const ChatUI = ({ user }) => {
 
                 const chunk = decoder.decode(value, { stream: true });
                 const lines = chunk.split("\n\n");
-                
+
                 for (const line of lines) {
                     if (line.startsWith("data: ")) {
                         const dataStr = line.substring(6);
@@ -179,21 +179,21 @@ const ChatUI = ({ user }) => {
                             isStreaming = false;
                             break;
                         }
-                        
+
                         try {
                             const data = JSON.parse(dataStr);
                             if (data.error) {
                                 assistantMessage += "\n\n**Error:** " + data.error;
                             } else if (data.text) {
                                 assistantMessage += data.text;
-                                
+
                                 if (!hasStartedStreaming) {
                                     hasStartedStreaming = true;
                                     setIsLoading(false); // Stop typing indicator only when text actually arrives
                                     setMessages(prev => [...prev, { id: tempBotId, role: "assistant", content: assistantMessage, timestamp: Date.now() }]);
                                 } else {
                                     // Update ONLY the local react state while streaming to avoid Firestore 1-write-per-second limit
-                                    setMessages(prev => 
+                                    setMessages(prev =>
                                         prev.map(msg => msg.id === tempBotId ? { ...msg, content: assistantMessage } : msg)
                                     );
                                 }
@@ -213,7 +213,7 @@ const ChatUI = ({ user }) => {
                 content: assistantMessage,
                 timestamp: Date.now()
             });
-            
+
         } catch (error) {
             console.error("Stream connection failed:", error);
             await addDoc(collection(db, "chats", currentChatId, "messages"), {
@@ -225,7 +225,7 @@ const ChatUI = ({ user }) => {
         }
     };
 
-    const filteredChats = chats.filter(chat => 
+    const filteredChats = chats.filter(chat =>
         chat.title?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -233,13 +233,13 @@ const ChatUI = ({ user }) => {
         <div className="flex h-screen w-full bg-[#343541] text-white flex-row overflow-hidden font-sans">
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpenMobile && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/60 z-20 md:hidden backdrop-blur-sm transition-opacity"
                     onClick={() => setIsSidebarOpenMobile(false)}
                 />
             )}
 
-            <Sidebar 
+            <Sidebar
                 user={user}
                 isOpenMobile={isSidebarOpenMobile}
                 isOpenDesktop={isSidebarOpenDesktop}
@@ -255,7 +255,7 @@ const ChatUI = ({ user }) => {
                 setSearchTerm={setSearchTerm}
             />
 
-            <ChatWindow 
+            <ChatWindow
                 messages={messages}
                 isLoading={isLoading}
                 onSendMessage={handleSendMessage}
